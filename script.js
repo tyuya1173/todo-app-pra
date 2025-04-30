@@ -1,6 +1,7 @@
 //タスクを追加する関数
 addTask = () => {
     const taskInput = document.getElementById("taskInput");
+    const deadlineInput = document.getElementById("deadlineInput");
     const taskList = document.getElementById("taskList");
 
     const taskText = taskInput.value.trim();
@@ -9,48 +10,53 @@ addTask = () => {
         return;
     }
 
-    //タスクをリストに追加する関数を呼び出し
-    addTaskToList(taskText, false);
+    const deadline = deadlineInput.value;
 
-    //現在のローカスストレージデータを更新
+    addTaskToList(taskText, false, deadline);
+
     updateStorage();
-
-    //入力欄をリセット
     taskInput.value = "";
+
+    deadlineInput.value = "";
 }
 
 //タスクをリストに追加する関数
-function addTaskToList(taskText, completed) {
+function addTaskToList(taskText, completed, deadline) {
     const taskList = document.getElementById("taskList");
 
-    //li要素を作成
     const li = document.createElement("li");
 
-    //チェックボックスを作成
     const checkbox = document.createElement("input");
     checkbox.type = "checkbox";
     checkbox.checked = completed;
 
-    //ラベルを作成
     const label = document.createElement("label");
     label.textContent = taskText;
 
-    if(checkbox.checked) {
-        li.style.display = "none"; // チェックされたら非表示
+    const deadlineLabel = document.createElement("label");
+    deadlineLabel.style.fontSize = "12px";
+    deadlineLabel.style.display = "block";
+
+    //期限の表示テキストを設定
+    deadlineLabel.textContent = deadline
+    ? `期限： ${new Date(deadline).toLocaleString("ja-JP")}`
+    : "期限： 未設定";
+
+    if (checkbox.checked) {
+        li.style.display = "none";
     }
-    
-    //チェックボックスにイベントを追加
+
     checkbox.addEventListener("change", () => {
-        if(checkbox.checked) {
-            li.style.display = "none"; // チェックされたら非表示
+        if (checkbox.checked) {
+            li.style.display = "none";
         }
+        updateStorage(); // ←チェック変更時に保存も更新
     });
 
-    //liにチェックボックスとラベルを追加
     li.appendChild(checkbox);
     li.appendChild(label);
+    li.appendChild(deadlineLabel);
 
-    //リストに追加
     taskList.appendChild(li);
 }
 
@@ -61,21 +67,27 @@ function updateStorage() {
 
     listItems.forEach(li => {
         const checkbox = li.querySelector("input[type='checkbox']");
-        const label = li.querySelector("label");
+        const labels = li.querySelectorAll("label"); //ラベルが複数ある
+
+        const text = labels[0]?.textContent || "";
+        const deadlineText = labels[1]?.textContent || "";
+
+        const deadline = deadlineText.startWith("期限： ") ? deadlineText.replace("期限： ", "") : "";
 
         tasks.push({
-            text: label.textContent,
-            completed: checkbox.checked
+            text: text,
+            completed: checkbox.checked,
+            deadline: deadline
         });
     });
 
     localStorage.setItem("tasks", JSON.stringify(tasks));
 }
 
-//ページ位読み込み時に保存されたタスクを復元
+//ページ読み込み時に保存されたタスクを復元
 window.onload = () => {
     const savedTasks = JSON.parse(localStorage.getItem("tasks")) || [];
     savedTasks.forEach(task => {
-        addTaskToList(task.text, task.completed);
+        addTaskToList(task.text, task.completed, task.deadline);
     });
 }
